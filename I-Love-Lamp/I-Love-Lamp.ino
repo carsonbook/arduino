@@ -45,6 +45,9 @@ void setup() {    //Like it's named, this gets ran before any other function.
   strand.begin(); //Initialize the LED strand object.
   strand.show();  //Show a blank strand, just to get the LED's ready for use.
 
+ pinMode(8, INPUT_PULLUP);
+ pinMode(9, INPUT_PULLUP);
+
   //Set spectrum Shield pin configurations
   pinMode(STROBE, OUTPUT);
   pinMode(RESET, OUTPUT);
@@ -75,21 +78,36 @@ void loop() {
 
     knob = analogRead(KNOB_PIN) / 1023.0; //Record how far the trimpot is twisted
     waves = knobToFactors120(); 
-  
-  if (goTime) {
-    goTime= false;
-    
-    unsigned long currentMillis = millis(); 
-    if(currentMillis - previousMillis > interval) {
-      previousMillis = currentMillis;   
-      run();     
+
+    if (digitalRead(8) == LOW) // Button #1 pressed
+    {
+      Serial.println("Button 1 Low");
+      strand.setPixelColor(0, 255, 255, 255);
+      strand.show();  //Show a blank strand
+    }
+    else if (digitalRead(9) == LOW) // Button #2 pressed
+    {
+      Serial.println("Button 2 Low");
+      strand.setPixelColor(0, 0, 0, 0);
+      strand.show();  //Show a blank strand
+    } else {
+      if (goTime) {
+        goTime= false;
+        
+        unsigned long currentMillis = millis(); 
+        if(currentMillis - previousMillis > interval) {
+          previousMillis = currentMillis;   
+          run();     
+          
+          Read_Frequencies();
+    //      Graph_Frequencies();
+          
+        }
       
-      Read_Frequencies();
-//      Graph_Frequencies();
+      }
       
     }
   
-  }
 }
 
 
