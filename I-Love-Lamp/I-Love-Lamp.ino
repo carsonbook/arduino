@@ -26,6 +26,10 @@ int waves = 2;
 
 bool goTime = false;
 
+bool buttonStates[3];
+
+bool breatheOn = false;
+
 //Define spectrum variables
 int freq_amp;
 int Frequencies_One[7];
@@ -45,8 +49,9 @@ void setup() {    //Like it's named, this gets ran before any other function.
   strand.begin(); //Initialize the LED strand object.
   strand.show();  //Show a blank strand, just to get the LED's ready for use.
 
- pinMode(8, INPUT_PULLUP);
- pinMode(9, INPUT_PULLUP);
+  pinMode(8, INPUT_PULLUP);
+  pinMode(9, INPUT_PULLUP);
+  pinMode(10, INPUT_PULLUP);
 
   //Set spectrum Shield pin configurations
   pinMode(STROBE, OUTPUT);
@@ -66,7 +71,11 @@ void setup() {    //Like it's named, this gets ran before any other function.
   digitalWrite(STROBE, LOW);
   delay(1);
   digitalWrite(RESET, LOW);
-  
+
+buttonStates[0] = false;
+buttonStates[1] = false;  
+buttonStates[2] = false;
+
 }
 
 SIGNAL(TIMER0_COMPA_vect) {
@@ -79,40 +88,70 @@ void loop() {
     knob = analogRead(KNOB_PIN) / 1023.0; //Record how far the trimpot is twisted
     waves = knobToFactors120(); 
 
-    if (digitalRead(8) == LOW) // Button #1 pressed
-    {
-      Serial.println("Button 1 Low");
-      strand.setPixelColor(0, 255, 255, 255);
-      strand.show();  //Show a blank strand
-    }
-    else if (digitalRead(9) == LOW) // Button #2 pressed
-    {
-      Serial.println("Button 2 Low");
-      strand.setPixelColor(0, 0, 0, 0);
-      strand.show();  //Show a blank strand
-    } else {
-      if (goTime) {
-        goTime= false;
+
+    checkButton();
+    
+    if (goTime) {
+      goTime= false;
+      
+      unsigned long currentMillis = millis(); 
+      if(currentMillis - previousMillis > interval) {
+        previousMillis = currentMillis;   
+        run();     
         
-        unsigned long currentMillis = millis(); 
-        if(currentMillis - previousMillis > interval) {
-          previousMillis = currentMillis;   
-          run();     
-          
-          Read_Frequencies();
-    //      Graph_Frequencies();
-          
-        }
-      
+        Read_Frequencies();
+  //      Graph_Frequencies();
+        
       }
-      
+    
     }
   
 }
 
+void checkButton() {
+    for (int i = 0; i < 3; i++) {
+      if ((digitalRead(8+i) == LOW) && !buttonStates[i] ) // Button #1 pressed
+      {
+        Serial.println("Button Pressed");
+        buttonStates[i] = true;
+      }
+      if ((digitalRead(8+i) == HIGH) && buttonStates[i] ) // Button #1 pressed
+      {
+        buttonStates[i] = false;
+        Serial.println("Button Released");
+        if (i == 0){
+           toggleBreathe();
+        }
+        else if (i == 1) {
+          Serial.println("Two");
+        }
+        else if (i == 2){
+          Serial.println("Three");
+        }
+      }
+    }
+}
+
+void toggleBreathe() {
+  if (breatheOn) {
+    breatheOn = false;
+    Serial.println("Breathe Off");
+  }
+  else { 
+    breatheOn = true;
+    Serial.println("Breathe On");
+  }
+}
 
 void run() {
-  float breathe = ((sin(position*2*3*PI/180)+1)/2*0.4)+0.2;
+  float breathe;
+  if (breatheOn) {
+     breathe = ((sin(position*2*3*PI/180)+1)/2*0.4)+0.2;  
+  } else {
+    breathe = 1;
+  }
+
+  
   int freak[7];
   
   for( i= 0; i<7; i++) {
@@ -139,8 +178,8 @@ void run() {
 //    int b = (int)((sin(i*waves*3*PI/180+4*PI/3)+1)*255/2 * freak[1]/1023);
 //    int b = 0;
     
-//    strand.setPixelColor(((i) % LED_TOTAL), strand.Color(r*breathe,g*breathe,b*breathe));
-    strand.setPixelColor(((i + position) % LED_TOTAL), strand.Color(r*breathe,g*breathe,b*breathe));
+    strand.setPixelColor(((i) % LED_TOTAL), strand.Color(r*breathe,g*breathe,b*breathe));
+//    strand.setPixelColor(((i + position) % LED_TOTAL), strand.Color(r*breathe,g*breathe,b*breathe));
   }
    
   position++;
